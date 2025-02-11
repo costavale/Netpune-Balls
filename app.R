@@ -29,12 +29,21 @@ ui <- navbarPage(
   tabPanel("Project Description",
            fluidPage(
              titlePanel("Rolling in the deep: Neptune balls as plastic sentinels"),
-             
-             # Add the project description text here
              h5("by Valentina Costa and Cristina Pedà"),
              br(),
+             
+             tags$div(
+               style = "text-align: center;",
+               img(src = "doll-detritus.jpg", height = "300px")  # Adjust height as needed
+             ),
+             br(),
+             
              p("Plastic pollution poses a significant threat to marine ecosystems. Seagrass beds have been recognized as natural sinks for plastics, while Neptune balls are efficient particle traps. This pilot study seeks to explore the potential of these spherical structures as sentinels for plastic pollution along the coast of the Mediterranean Sea by analyzing their entrapment capability. We aim to introduce an innovative approach to assessing plastic pollution in marine ecosystems."),
-           )
+             br(),
+           
+             tags$p("Learn more about the project at the experiment.com website: ", 
+                    tags$a(href = " https://doi.org/10.18258/68571", "Rolling in the deep: Neptune balls as plastic sentinels", target = "_blank"))
+             )
   ),
   
   # Second page: Map, inputs, and table

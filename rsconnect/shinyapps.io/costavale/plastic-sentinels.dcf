@@ -5,7 +5,7 @@ account: costavale
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13954436
-bundleId: 9777107
+bundleId: 9777118
 url: https://costavale.shinyapps.io/plastic-sentinels/
 version: 1
 asMultiple: FALSE
