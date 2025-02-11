@@ -5,6 +5,7 @@ library(dplyr)
 library(DT)
 library(shinythemes)
 library(plotly)
+library(reactable)
 
 # Define file path for saving data
 data_file <- "data/marked_points.csv"
@@ -38,11 +39,20 @@ ui <- navbarPage(
              ),
              br(),
              
-             p("Plastic pollution poses a significant threat to marine ecosystems. Seagrass beds have been recognized as natural sinks for plastics, while Neptune balls are efficient particle traps. This pilot study seeks to explore the potential of these spherical structures as sentinels for plastic pollution along the coast of the Mediterranean Sea by analyzing their entrapment capability. We aim to introduce an innovative approach to assessing plastic pollution in marine ecosystems."),
+             p("Plastic pollution poses a significant threat to marine ecosystems. 
+               Seagrass beds have been recognized as natural sinks for plastics, 
+               while Neptune balls are efficient particle traps. 
+               This pilot study seeks to explore the potential of these spherical 
+               structures as sentinels for plastic pollution along the coast 
+               of the Mediterranean Sea by analyzing their entrapment capability. 
+               We aim to introduce an innovative approach to assessing plastic 
+               pollution in marine ecosystems."),
              br(),
            
              tags$p("Learn more about the project at the experiment.com website: ", 
-                    tags$a(href = " https://doi.org/10.18258/68571", "Rolling in the deep: Neptune balls as plastic sentinels", target = "_blank"))
+                    tags$a(href = " https://doi.org/10.18258/68571", 
+                           "Rolling in the deep: Neptune balls as plastic sentinels", 
+                           target = "_blank"))
              )
   ),
   
