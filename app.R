@@ -15,7 +15,7 @@ if (file.exists(data_file)) {
   marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
     mutate(lat = as.numeric(lat), lon = as.numeric(lon))
 } else {
-  marked_points_data <- data.frame(lat = numeric(0), lon = numeric(0), tag = character(0), stringsAsFactors = FALSE)
+  marked_points_data <- data.frame(lat = numeric(0), lon = numeric(0), tag = character(0), stringsAsFactors = FALSE) 
 }
 
 
@@ -32,13 +32,13 @@ ui <- navbarPage(
              titlePanel("Rolling in the deep: Neptune balls as plastic sentinels"),
              h5("by Valentina Costa and Cristina Pedà"),
              br(),
-             
+
              tags$div(
                style = "text-align: center;",
                img(src = "doll-detritus.jpg", height = "300px")  # Adjust height as needed
              ),
              br(),
-             
+
              p("Plastic pollution poses a significant threat to marine ecosystems. 
                Seagrass beds have been recognized as natural sinks for plastics, 
                while Neptune balls are efficient particle traps. 
@@ -48,14 +48,14 @@ ui <- navbarPage(
                We aim to introduce an innovative approach to assessing plastic 
                pollution in marine ecosystems."),
              br(),
-           
+
              tags$p("Learn more about the project at the experiment.com website: ", 
                     tags$a(href = " https://doi.org/10.18258/68571", 
                            "Rolling in the deep: Neptune balls as plastic sentinels", 
                            target = "_blank"))
              )
   ),
-  
+
   # Second page: Map, inputs, and table
   tabPanel("Map and Data",
            fluidPage(
@@ -71,7 +71,9 @@ ui <- navbarPage(
                       wellPanel(
                         numericInput("lat", "Latitude", value = 35, min = -90, max = 90),
                         numericInput("lon", "Longitude", value = 15, min = -180, max = 180),
-                        textInput("tag", "Tag/Name", value = "Point"),
+                        textInput("site", "Site", value = "Name of the Site"),
+                        textInput("name", "Name", value = "Name of the collector"),
+                        fileInput("photo", "Upload a photo", accept = c('image/png', 'image/jpeg')),
                         actionButton("mark_button", "Mark Point"),
                         br(), br(),
                         downloadButton("download_data", "Download Data")  # Button to download data
@@ -143,7 +145,7 @@ server <- function(input, output, session) {
     if (nrow(marked_points()) > 0 && all(!is.na(marked_points()$lat)) && all(!is.na(marked_points()$lon))) {
       map <- map %>%
         addMarkers(data = marked_points(), ~as.numeric(lon), ~as.numeric(lat), 
-                   popup = ~paste("Tag:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
+                   popup = ~paste("<br>Site:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
     }
     
     map
@@ -151,31 +153,35 @@ server <- function(input, output, session) {
   
   # Observe when the "Mark Point" button is clicked
   observeEvent(input$mark_button, {
-    new_point <- data.frame(lat = input$lat, lon = input$lon, tag = input$tag)
+    # Handle file upload
+  img_path <- NA
+  if (!is.null(input$photo)) {
+    img_path <- paste0("www/", input$photo$name)  # Store in the "www" folder
+    file.copy(input$photo$datapath, img_path, overwrite = TRUE)
+  }
+    
+    new_point <- data.frame(lat = input$lat, lon = input$lon, site = input$site, name = input$name, photo = img_path, stringsAsFactors = FALSE)
     updated_points <- rbind(marked_points(), new_point)
     marked_points(updated_points)
+
     write.csv(updated_points, data_file, row.names = FALSE)
     
-    leafletProxy("map") %>%
-      clearMarkers() %>%
-      addMarkers(data = marked_points(), ~lon, ~lat, popup = ~paste("Tag:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
-  })
+    # Update map with images in popups
+  leafletProxy("map") %>%
+    clearMarkers() %>%
+    addMarkers(
+      data = marked_points(), 
+      ~lon, ~lat, 
+      popup = ~paste(
+        "<b>Tag:</b>", tag, "<br>",
+        "<b>Lat:</b>", lat, "<br>",
+        "<b>Lon:</b>", lon, "<br>",
+        ifelse(!is.na(photo), paste0('<img src="', photo, '" width="150">'), "")
+      )
+    )
+})
   
-  # Observe clicks on the map to add a point
-  observeEvent(input$map_click, {
-    click <- input$map_click
-    if (!is.null(click)) {
-      new_point <- data.frame(lat = click$lat, lon = click$lng, tag = "Clicked Point")
-      updated_points <- rbind(marked_points(), new_point)
-      marked_points(updated_points)
-      
-      write.csv(updated_points, data_file, row.names = FALSE)
-      
-      leafletProxy("map") %>%
-        clearMarkers() %>%
-        addMarkers(data = marked_points(), ~lon, ~lat, popup = ~paste("Tag:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
-    }
-  })
+
   
   # Render the dataframe as a table below the map
   output$points_table <- renderDT({
