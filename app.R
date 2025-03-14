@@ -15,15 +15,15 @@ if (file.exists(data_file)) {
   marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
     mutate(lat = as.numeric(lat), lon = as.numeric(lon))
 } else {
-  marked_points_data <- data.frame(lat = numeric(0), lon = numeric(0), tag = character(0), stringsAsFactors = FALSE) 
+  marked_points_data <- data.frame(lat = numeric(0), lon = numeric(0), site = character(0), name = character(0), photo = character(0), stringsAsFactors = FALSE) 
 }
 
 
 # Define UI for the app
 ui <- navbarPage(
-  
-  # Title for the app
-  title = "Plastic Sentinels",
+
+# Title for the app
+  title = "Neptune Plastic Balls",
   theme = shinytheme("sandstone"),
   
   # First page: Project description
@@ -35,7 +35,7 @@ ui <- navbarPage(
 
              tags$div(
                style = "text-align: center;",
-               img(src = "doll-detritus.jpg", height = "300px")  # Adjust height as needed
+               img(src = "doll-detritus.jpg", height = "300px")
              ),
              br(),
 
@@ -103,7 +103,7 @@ ui <- navbarPage(
                column(4,
                       h4("Sampling Statistics"),
                       p("Total number of points:"),
-                      textOutput("num_points"),
+                      textOutput("num_points")
                       ),
                column(8,
                       p("Geographical Spread:"),
