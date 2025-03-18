@@ -22,8 +22,7 @@ if (file.exists(data_file)) {
 # Define UI for the app
 ui <- navbarPage(
 
-# Title for the app
-  title = "Neptune Plastic Balls",
+  title = "Neptune Balls - Plastic Sentinels",
   theme = shinytheme("sandstone"),
   
   # First page: Project description
@@ -35,7 +34,11 @@ ui <- navbarPage(
 
              tags$div(
                style = "text-align: center;",
-               img(src = "doll-detritus.jpg", height = "300px")
+               if (file.exists("www/doll-detritus.jpg")) {
+                 img(src = "doll-detritus.jpg", height = "300px")
+               } else {
+                 p("Image not found.")
+               }
              ),
              br(),
 
@@ -50,7 +53,7 @@ ui <- navbarPage(
              br(),
 
              tags$p("Learn more about the project at the experiment.com website: ", 
-                    tags$a(href = " https://doi.org/10.18258/68571", 
+                    tags$a(href = "https://doi.org/10.18258/68571", 
                            "Rolling in the deep: Neptune balls as plastic sentinels", 
                            target = "_blank"))
              )
@@ -62,11 +65,10 @@ ui <- navbarPage(
              # Layout with map on the left and input on the right
              fluidRow(
                # Column for the map
-               column(8, 
-                      leafletOutput("map", height = 500)  # Map takes up 8/12 of the width
+               column(8, leafletOutput("map", height = 500)
                ),
                
-               # Column for user input (latitude, longitude, and tag)
+               # Column for user input (latitude, longitude, and site)
                column(4, 
                       wellPanel(
                         numericInput("lat", "Latitude", value = 35, min = -90, max = 90),
@@ -102,7 +104,7 @@ ui <- navbarPage(
              fluidRow(
                column(4,
                       h4("Sampling Statistics"),
-                      p("Total number of points:"),
+                      p("Total number of sampling sites:"),
                       textOutput("num_points")
                       ),
                column(8,
@@ -145,7 +147,7 @@ server <- function(input, output, session) {
     if (nrow(marked_points()) > 0 && all(!is.na(marked_points()$lat)) && all(!is.na(marked_points()$lon))) {
       map <- map %>%
         addMarkers(data = marked_points(), ~as.numeric(lon), ~as.numeric(lat), 
-                   popup = ~paste("<br>Site:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
+                   popup = ~paste("<br>Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
     }
     
     map
@@ -153,36 +155,76 @@ server <- function(input, output, session) {
   
   # Observe when the "Mark Point" button is clicked
   observeEvent(input$mark_button, {
+    
+    # Debugging: Print input values
+    print(paste("Latitude:", input$lat))
+    print(paste("Longitude:", input$lon))
+    print(paste("Site:", input$site))
+    print(paste("Name:", input$name))
+    print(paste("Photo input:", input$photo))  # Check if NULL or unexpected type
+    
     # Handle file upload
-  img_path <- NA
-  if (!is.null(input$photo)) {
+  img_path <- NA_character_
+  
+  if (!is.null(input$photo) && !is.null(input$photo$datapath)) {
     img_path <- paste0("www/", input$photo$name)  # Store in the "www" folder
     file.copy(input$photo$datapath, img_path, overwrite = TRUE)
   }
+  
+  # Debugging: Print processed photo path
+  print(paste("Stored Photo Path:", img_path))
     
-    new_point <- data.frame(lat = input$lat, lon = input$lon, site = input$site, name = input$name, photo = img_path, stringsAsFactors = FALSE)
-    updated_points <- rbind(marked_points(), new_point)
+    new_point <- data.frame(
+        lat = as.numeric(input$lat), 
+        lon = as.numeric(input$lon), 
+        site = as.character(input$site), 
+        name = as.character(input$name), 
+        photo = ifelse(is.na(img_path), "", img_path),  # Convert NA to ""
+        stringsAsFactors = FALSE
+    )
+    
+    # Debugging
+    print("New point created:")
+    print(new_point)
+    
+    updated_points <- bind_rows(marked_points(), new_point)
+    
+    # Debugging: Print updated dataset
+    print("Updated dataset:")
+    print(updated_points)
+    
     marked_points(updated_points)
 
     write.csv(updated_points, data_file, row.names = FALSE)
     
+    # Debugging: Print after saving
+    print("Data saved successfully!")
+    
+    # Debugging: Ensure correct column names exist before updating the map
+    print("Updated dataset columns: ")
+    print(colnames(updated_points))
+    
+    print("Debug - marked_points() structure:")
+    str(marked_points())
+    
     # Update map with images in popups
-  leafletProxy("map") %>%
-    clearMarkers() %>%
+    output$map <- renderLeaflet({
+  leaflet() %>%
+    addTiles() %>%
     addMarkers(
-      data = marked_points(), 
-      ~lon, ~lat, 
-      popup = ~paste(
-        "<b>Tag:</b>", tag, "<br>",
-        "<b>Lat:</b>", lat, "<br>",
-        "<b>Lon:</b>", lon, "<br>",
-        ifelse(!is.na(photo), paste0('<img src="', photo, '" width="150">'), "")
+      data = marked_points(),
+      lng = ~lon,
+      lat = ~lat,
+      popup = ~paste0(
+        "<b>Site:</b> ", site, "<br>",
+        "<b>Collector:</b> ", name, "<br>",
+        "<b>Lat:</b> ", lat, "<br>",
+        "<b>Lon:</b> ", lon, "<br>"
       )
     )
 })
-  
+  })
 
-  
   # Render the dataframe as a table below the map
   output$points_table <- renderDT({
     datatable(marked_points(), editable = "cell", selection = "single")
@@ -193,13 +235,13 @@ server <- function(input, output, session) {
     info <- input$points_table_cell_edit
     updated_data <- marked_points()
     
-    # Correctly update lat, lon, or tag without introducing new columns
+    # Correctly update lat, lon, or site without introducing new columns
     if (info$col == 1) {
       updated_data[info$row, "lat"] <- as.numeric(info$value)
     } else if (info$col == 2) {
       updated_data[info$row, "lon"] <- as.numeric(info$value)
     } else if (info$col == 3) {
-      updated_data[info$row, "tag"] <- info$value
+      updated_data[info$row, "site"] <- info$value
     }
     
     # Remove rows with NA lat/lon
@@ -210,7 +252,7 @@ server <- function(input, output, session) {
     
     leafletProxy("map") %>%
       clearMarkers() %>%
-      addMarkers(data = marked_points(), ~lon, ~lat, popup = ~paste("Tag:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
+      addMarkers(data = marked_points(), ~lon, ~lat, popup = ~paste("Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
   })
   
   # Observe delete button click
@@ -224,7 +266,7 @@ server <- function(input, output, session) {
       
       leafletProxy("map") %>%
         clearMarkers() %>%
-        addMarkers(data = updated_points, ~lon, ~lat, popup = ~paste("Tag:", tag, "<br>Lat:", lat, "<br>Lon:", lon))
+        addMarkers(data = updated_points, ~lon, ~lat, popup = ~paste("Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
     }
   })
   
