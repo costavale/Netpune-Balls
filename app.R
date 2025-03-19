@@ -5,7 +5,7 @@ library(dplyr)
 library(DT)
 library(shinythemes)
 library(plotly)
-library(reactable)
+library(googlesheets4)
 
 # Define file path for saving data
 data_file <- "data/marked_points.csv"
@@ -13,9 +13,15 @@ data_file <- "data/marked_points.csv"
 # Load existing data (if the file exists)
 if (file.exists(data_file)) {
   marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
-    mutate(lat = as.numeric(lat), lon = as.numeric(lon))
+    mutate(lat = as.numeric(lat), lon = as.numeric(lon), date = as.Date(date))
 } else {
-  marked_points_data <- data.frame(lat = numeric(0), lon = numeric(0), site = character(0), name = character(0), photo = character(0), stringsAsFactors = FALSE) 
+  marked_points_data <- data.frame(
+    lat = numeric(0), 
+    lon = numeric(0),
+    date = as.Date(character(0)),
+    site = character(0), 
+    name = character(0), 
+    photo = character(0), stringsAsFactors = FALSE) 
 }
 
 
@@ -73,6 +79,7 @@ ui <- navbarPage(
                       wellPanel(
                         numericInput("lat", "Latitude", value = 35, min = -90, max = 90),
                         numericInput("lon", "Longitude", value = 15, min = -180, max = 180),
+                        dateInput("date", "Date", value = Sys.Date(), format = "yyyy-mm-dd"),
                         textInput("site", "Site", value = "Name of the Site"),
                         textInput("name", "Name", value = "Name of the collector"),
                         fileInput("photo", "Upload a photo", accept = c('image/png', 'image/jpeg')),
@@ -147,7 +154,7 @@ server <- function(input, output, session) {
     if (nrow(marked_points()) > 0 && all(!is.na(marked_points()$lat)) && all(!is.na(marked_points()$lon))) {
       map <- map %>%
         addMarkers(data = marked_points(), ~as.numeric(lon), ~as.numeric(lat), 
-                   popup = ~paste("<br>Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
+                   popup = ~paste("<br>Site:", site, "<br>Date:", date, "<br>Lat:", lat, "<br>Lon:", lon))
     }
     
     map
@@ -177,6 +184,7 @@ server <- function(input, output, session) {
     new_point <- data.frame(
         lat = as.numeric(input$lat), 
         lon = as.numeric(input$lon), 
+        date = as.Date(input$date),
         site = as.character(input$site), 
         name = as.character(input$name), 
         photo = ifelse(is.na(img_path), "", img_path),  # Convert NA to ""
@@ -217,6 +225,7 @@ server <- function(input, output, session) {
       lat = ~lat,
       popup = ~paste0(
         "<b>Site:</b> ", site, "<br>",
+        "<b>Date:</b> ", date, "<br>",        
         "<b>Collector:</b> ", name, "<br>",
         "<b>Lat:</b> ", lat, "<br>",
         "<b>Lon:</b> ", lon, "<br>"
