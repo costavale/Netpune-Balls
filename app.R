@@ -68,10 +68,8 @@ ui <- navbarPage(
   # Second page: Map, inputs, and table
   tabPanel("Map and Data",
            fluidPage(
-             # Layout with map on the left and input on the right
-             fluidRow(
-               # Column for the map
-               column(8, leafletOutput("map", height = 500)
+            fluidRow(
+               column(8, leafletOutput("map", height = 600)
                ),
                
                # Column for user input (latitude, longitude, and site)
@@ -84,8 +82,7 @@ ui <- navbarPage(
                         textInput("name", "Name", value = "Name of the collector"),
                         fileInput("photo", "Upload a photo", accept = c('image/png', 'image/jpeg')),
                         actionButton("mark_button", "Mark Point"),
-                        br(), br(),
-                        downloadButton("download_data", "Download Data")  # Button to download data
+                        br(), br()
                         )
                )
              ),
@@ -95,8 +92,8 @@ ui <- navbarPage(
                column(12, 
                       br(),
                       h4("Neptune Balls - Sampled Points"),
-                      DTOutput("points_table"),  # Display the dataframe with points
-                      actionButton("delete_button", "Delete Selected Point", class = "btn-danger") # Delete button
+                      DTOutput("points_table"),
+                      downloadButton("download_data", "Download Data")
                )
              )
            )
@@ -109,12 +106,12 @@ ui <- navbarPage(
              
              # Display summary information
              fluidRow(
-               column(4,
+               column(6,
                       h4("Sampling Statistics"),
                       p("Total number of sampling sites:"),
                       textOutput("num_points")
                       ),
-               column(8,
+               column(6,
                       p("Geographical Spread:"),
                       plotlyOutput("geo_spread_lat"),
                       plotlyOutput("geo_spread_lon")
@@ -263,21 +260,7 @@ server <- function(input, output, session) {
       clearMarkers() %>%
       addMarkers(data = marked_points(), ~lon, ~lat, popup = ~paste("Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
   })
-  
-  # Observe delete button click
-  observeEvent(input$delete_button, {
-    selected_row <- input$points_table_rows_selected  # Get selected row index
-    if (!is.null(selected_row) && length(selected_row) > 0) {
-      updated_points <- marked_points()[-selected_row, ]  # Remove selected row
-      marked_points(updated_points)
-      
-      write.csv(updated_points, data_file, row.names = FALSE)
-      
-      leafletProxy("map") %>%
-        clearMarkers() %>%
-        addMarkers(data = updated_points, ~lon, ~lat, popup = ~paste("Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
-    }
-  })
+
   
   # Allow users to download the data
   output$download_data <- downloadHandler(
