@@ -10,19 +10,10 @@ library(googlesheets4)
 # Define file path for saving data
 data_file <- "data/marked_points.csv"
 
-# Load existing data (if the file exists)
-if (file.exists(data_file)) {
-  marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
-    mutate(lat = as.numeric(lat), lon = as.numeric(lon), date = as.Date(date))
-} else {
-  marked_points_data <- data.frame(
-    lat = numeric(0), 
-    lon = numeric(0),
-    date = as.Date(character(0)),
-    site = character(0), 
-    name = character(0), 
-    photo = character(0), stringsAsFactors = FALSE) 
-}
+# Load existing data
+marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
+  mutate(lat = as.numeric(lat), lon = as.numeric(lon), date = as.Date(date))
+
 
 
 # Define UI for the app
@@ -35,16 +26,12 @@ ui <- navbarPage(
   tabPanel("Project Description",
            fluidPage(
              titlePanel("Rolling in the deep: Neptune balls as plastic sentinels"),
-             h5("by Valentina Costa and Cristina Pedà"),
+             h5("by Valentina Costa and Cristina Pedà**"),
              br(),
 
              tags$div(
                style = "text-align: center;",
-               if (file.exists("www/doll-detritus.jpg")) {
-                 img(src = "doll-detritus.jpg", height = "300px")
-               } else {
-                 p("Image not found.")
-               }
+               img(src = "doll-detritus.jpg", height = "500px")
              ),
              br(),
 
@@ -75,13 +62,9 @@ ui <- navbarPage(
                # Column for user input (latitude, longitude, and site)
                column(4, 
                       wellPanel(
-                        numericInput("lat", "Latitude", value = 35, min = -90, max = 90),
-                        numericInput("lon", "Longitude", value = 15, min = -180, max = 180),
-                        dateInput("date", "Date", value = Sys.Date(), format = "yyyy-mm-dd"),
-                        textInput("site", "Site", value = "Name of the Site"),
-                        textInput("name", "Name", value = "Name of the collector"),
-                        fileInput("photo", "Upload a photo", accept = c('image/png', 'image/jpeg')),
-                        actionButton("mark_button", "Mark Point"),
+                        textInput("search_country", "Search by Country", value = ""),
+                        textInput("search_site", "Search by Site", value = ""),
+                        actionButton("search_button", "Search"),
                         br(), br()
                         )
                )
@@ -142,94 +125,63 @@ server <- function(input, output, session) {
   # Reactive dataframe to store marked points
   marked_points <- reactiveVal(marked_points_data)
   
+  # Filtered points based on search criteria
+  filtered_points <- reactive({
+    data <- marked_points()
+    
+    if (input$search_country != "") {
+      data <- data %>% filter(grepl(input$search_country, country, ignore.case = TRUE))
+    }
+    
+    if (input$search_site != "") {
+      data <- data %>% filter(grepl(input$search_site, site, ignore.case = TRUE))
+    }
+    
+    return(data)
+  })
+  
+  # # Render map with filtered points
+  # output$map <- renderLeaflet({
+  #   leaflet() %>%
+  #     addProviderTiles("Esri.WorldImagery") %>%
+  #     setView(lng = 13.5, lat = 37.5, zoom = 4.5) %>%
+  #     addMarkers(
+  #       data = filtered_points(),
+  #       lng = ~lon,
+  #       lat = ~lat,
+  #       popup = ~paste0(
+  #         "<b>Site:</b> ", site, "<br>",
+  #         "<b>Collector:</b> ", name, "<br>",
+  #         "<b>Date:</b> ", date, "<br>",
+  #         "<b>Lat:</b> ", lat, "<br>",
+  #         "<b>Lon:</b> ", lon, "<br>",
+  #         ifelse(photo != "", paste0('<img src="', photo, '" width="200px">'), "")
+  #       )
+  #     )
+  # })
+  
   output$map <- renderLeaflet({
     map <- leaflet() %>%
       addProviderTiles("Esri.WorldImagery") %>%
       setView(lng = 13.5, lat = 37.5, zoom = 4.5)
-    
+
     # Check if the dataframe has valid numeric data before adding markers
-    if (nrow(marked_points()) > 0 && all(!is.na(marked_points()$lat)) && all(!is.na(marked_points()$lon))) {
+    if (nrow(filtered_points()) > 0) {
       map <- map %>%
-        addMarkers(data = marked_points(), ~as.numeric(lon), ~as.numeric(lat), 
-                   popup = ~paste("<br>Site:", site, "<br>Date:", date, "<br>Lat:", lat, "<br>Lon:", lon))
+        addMarkers(data = filtered_points(), ~as.numeric(lon), ~as.numeric(lat),
+                   popup = ~paste0(
+                    ifelse(photo != "", paste0('<img src="', photo, '" width="200px">'), ""),
+                    "<b>Site:</b> ", site, "<br>",
+                            "<b>Collector:</b> ", name, "<br>",
+                            "<b>Date:</b> ", date, "<br>",
+                            "<b>Lat:</b> ", lat, "<br>",
+                            "<b>Lon:</b> ", lon, "<br>"))
     }
-    
+
     map
   })
   
-  # Observe when the "Mark Point" button is clicked
-  observeEvent(input$mark_button, {
-    
-    # Debugging: Print input values
-    print(paste("Latitude:", input$lat))
-    print(paste("Longitude:", input$lon))
-    print(paste("Site:", input$site))
-    print(paste("Name:", input$name))
-    print(paste("Photo input:", input$photo))  # Check if NULL or unexpected type
-    
-    # Handle file upload
-  img_path <- NA_character_
   
-  if (!is.null(input$photo) && !is.null(input$photo$datapath)) {
-    img_path <- paste0("www/", input$photo$name)  # Store in the "www" folder
-    file.copy(input$photo$datapath, img_path, overwrite = TRUE)
-  }
-  
-  # Debugging: Print processed photo path
-  print(paste("Stored Photo Path:", img_path))
-    
-    new_point <- data.frame(
-        lat = as.numeric(input$lat), 
-        lon = as.numeric(input$lon), 
-        date = as.Date(input$date),
-        site = as.character(input$site), 
-        name = as.character(input$name), 
-        photo = ifelse(is.na(img_path), "", img_path),  # Convert NA to ""
-        stringsAsFactors = FALSE
-    )
-    
-    # Debugging
-    print("New point created:")
-    print(new_point)
-    
-    updated_points <- bind_rows(marked_points(), new_point)
-    
-    # Debugging: Print updated dataset
-    print("Updated dataset:")
-    print(updated_points)
-    
-    marked_points(updated_points)
-
-    write.csv(updated_points, data_file, row.names = FALSE)
-    
-    # Debugging: Print after saving
-    print("Data saved successfully!")
-    
-    # Debugging: Ensure correct column names exist before updating the map
-    print("Updated dataset columns: ")
-    print(colnames(updated_points))
-    
-    print("Debug - marked_points() structure:")
-    str(marked_points())
-    
-    # Update map with images in popups
-    output$map <- renderLeaflet({
-  leaflet() %>%
-    addTiles() %>%
-    addMarkers(
-      data = marked_points(),
-      lng = ~lon,
-      lat = ~lat,
-      popup = ~paste0(
-        "<b>Site:</b> ", site, "<br>",
-        "<b>Date:</b> ", date, "<br>",        
-        "<b>Collector:</b> ", name, "<br>",
-        "<b>Lat:</b> ", lat, "<br>",
-        "<b>Lon:</b> ", lon, "<br>"
-      )
-    )
-})
-  })
 
   # Render the dataframe as a table below the map
   output$points_table <- renderDT({
@@ -250,62 +202,82 @@ server <- function(input, output, session) {
       updated_data[info$row, "site"] <- info$value
     }
     
-    # Remove rows with NA lat/lon
-    updated_data <- updated_data %>% filter(!is.na(lat) & !is.na(lon))
-    
     marked_points(updated_data)
-    write.csv(updated_data, data_file, row.names = FALSE)
-    
-    leafletProxy("map") %>%
-      clearMarkers() %>%
-      addMarkers(data = marked_points(), ~lon, ~lat, popup = ~paste("Site:", site, "<br>Lat:", lat, "<br>Lon:", lon))
-  })
+   
+     })
 
   
   # Allow users to download the data
   output$download_data <- downloadHandler(
     filename = function() { "Neptune_Balls.csv" },
     content = function(file) {
-      write.csv(marked_points(), file, row.names = FALSE)
+      write.csv(filtered_points(), file, row.names = FALSE)
     }
   )
   
   # Render statistics in the summary page
   output$num_points <- renderText({
-    nrow(marked_points())
+    nrow(filtered_points())
   })
   
   # Function to create column graphs for geographical spread (latitude and longitude)
-  create_geo_spread_plot <- function(data, variable, var_name) {
-    breaks <- seq(min(data), max(data), by = 5)  # Define breaks (intervals)
-    cut_data <- cut(data, breaks = breaks, include.lowest = TRUE, right = FALSE)
-    counts <- table(cut_data)
-    
-    plot_ly(
-      x = names(counts),
-      y = as.numeric(counts),
-      type = "bar",
-      name = var_name
-    ) %>%
-      layout(
-        title = paste(var_name, "Distribution"),
-        xaxis = list(title = var_name),
-        yaxis = list(title = "Count")
-      )
+create_geo_spread_plot <- function(data, variable, var_name) {
+  # Dynamic breaks
+  data_range <- max(data) - min(data)
+  if (data_range <= 10) {
+    by_value <- 1
+  } else if (data_range <= 20) {
+    by_value <- 2
+  } else if (data_range <= 50) {
+    by_value <- 5
+  } else if (data_range <= 100) {
+    by_value <- 10
+  } else {
+    by_value <- 20
   }
-  
-  # Render geographical spread plots
-  output$geo_spread_lat <- renderPlotly({
-    if (nrow(marked_points()) > 0) {
-      create_geo_spread_plot(marked_points()$lat, "Latitude", "Latitude")
-    }
-  })
-  
-  output$geo_spread_lon <- renderPlotly({
-    if (nrow(marked_points()) > 0) {
-      create_geo_spread_plot(marked_points()$lon, "Longitude", "Longitude")
-    }
-  })
+  breaks <- seq(min(data), max(data), by = by_value)  # Define breaks (intervals)
+  cut_data <- cut(data, breaks = breaks, include.lowest = TRUE, right = FALSE)
+  counts <- table(cut_data)
+
+  # Define a color palette
+  color_palette <- c("#2c7bb6", "#00a6ca", "#00ccbc", "#90eb9d", "#ffff8c")
+
+  plot_ly(
+    x = names(counts),
+    y = as.numeric(counts),
+    type = "bar",
+    name = var_name,
+    marker = list(color = color_palette[1]), # Use the first color of the palette
+    hoverinfo = "text",
+    text = paste("Range:", names(counts), "<br>Count:", as.numeric(counts))
+  ) %>%
+    layout(
+      title = list(text = paste(var_name, "Distribution"), x = 0.5), # Centered title
+      xaxis = list(title = var_name, showgrid = FALSE), # Remove gridlines
+      yaxis = list(title = "Count", showgrid = FALSE), # Remove gridlines
+      plot_bgcolor = "rgba(240, 240, 240, 0.8)", # Light gray background
+      paper_bgcolor = "rgba(255, 255, 255, 0.8)", # White background
+      margin = list(l = 50, r = 50, b = 50, t = 50) # Adjust margins
+    )
+}
+
+# Render geographical spread plots
+output$geo_spread_lat <- renderPlotly({
+  if (nrow(filtered_points()) > 0) {
+    create_geo_spread_plot(filtered_points()$lat, "Latitude", "Latitude")
+  } else {
+    plotly_empty()
+  }
+})
+
+output$geo_spread_lon <- renderPlotly({
+  if (nrow(filtered_points()) > 0) {
+    create_geo_spread_plot(filtered_points()$lon, "Longitude", "Longitude")
+  } else {
+    plotly_empty()
+  }
+})
+
 }
 
 shinyApp(ui = ui, server = server)

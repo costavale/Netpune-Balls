@@ -5,8 +5,9 @@ account: costavale
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14263789
-bundleId: 9970091
+bundleId: 10038035
 url: https://costavale.shinyapps.io/Netpune-Balls/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: www/DianeNorth-11032025-01.jpg|www/doll-detritus_original.jpg

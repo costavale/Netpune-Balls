@@ -1,4 +1,17 @@
-"lat","lon","date","site","name","photo"
-42.147778,9.554444,2025-11-03,"Diane North, Corsica","Charles-Francois Boudoureque",NA
-42.146944,9.554444,2025-11-03,"Diane Middle, Corsica","Charles-Francois Boudoureque",NA
-42.145,9.554444,2025-11-03,"Diane South, Corsica","Charles-Francois Boudoureque",NA
+﻿id,lat,lon,date,site,country,name,photo
+1,42.147778,9.554444,03/11/2025,"Diane North, Corsica",France,Charles-Francois Boudoureque,01 - DianeNorth-11032025-01.jpg
+2,42.146944,9.554444,03/11/2025,"Diane Middle, Corsica",France,Charles-Francois Boudoureque,
+3,42.145,9.554444,03/11/2025,"Diane South, Corsica",France,Charles-Francois Boudoureque,03 - DianeSouth-11032025-01.jpg
+4,42.664722,9.061944,03/13/2025,"Ostriconi North, Corsica",France,Charles-Francois Boudoureque,04 - OstriconiNorth-13032025-01.jpg
+5,42.663333,9.061667,03/13/2025,"Ostriconi Middle, Corsica",France,Charles-Francois Boudoureque,05 - OstriconiMiddle-13032025-01.jpg
+6,42.662222,9.060833,03/13/2025,"Ostriconi South, Corsica",France,Charles-Francois Boudoureque,06 - OstriconiSouth-13032025-01.jpg
+7,41.941111,9.411111,03/16/2025,"Palu South, Corsica",France,Charles-Francois Boudoureque,07 - PaluSouth-16032025-01.jpg
+8,41.953056,9.4125,03/16/2025,"Palu Middle, Corsica",France,Charles-Francois Boudoureque,08 - PaluMiddle-16032025-01.jpg
+9,41.958611,9.415556,03/16/2025,"Palu North, Corsica",France,Charles-Francois Boudoureque,09 - PaluNorth-16032025-01.jpg
+10,42.414167,8.644167,03/18/2025,"Galeria West, Corsica",France,Charles-Francois Boudoureque,10 - GaleriaWest-18032025-01.jpg
+11,42.676389,9.283889,03/18/2025,"La Roya West, Corsica",France,Charles-Francois Boudoureque,11 - LaRoyaWest-18032025-01.jpg
+12,42.676389,9.284167,03/18/2025,"La Roya Middle, Corsica",France,Charles-Francois Boudoureque,12 - LaRoyaMiddle-18032025-01.jpg
+13,42.676111,9.284167,03/18/2025,"La Roya East, Corsica",France,Charles-Francois Boudoureque,13 - LaRoyaEast-18032025-01.jpg
+14,42.67,9.446667,03/18/2025,"Arinella South, Corsica",France,Charles-Francois Boudoureque,14 - ArinellaSouth-18032025-01.jpg
+15,42.670556,9.446667,03/18/2025,"Arinella Middle, Corsica ",France,Charles-Francois Boudoureque,15 - ArinellaMiddle-18032025-01.jpg
+16,42.671111,9.446667,03/18/2025,"Arinella North, Corsica",France,Charles-Francois Boudoureque,16 - ArinellaNorth-18032025-01.jpg
