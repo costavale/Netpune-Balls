@@ -15,8 +15,7 @@ marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
   mutate(lat = as.numeric(lat), lon = as.numeric(lon), date = as.Date(date))
 
 
-
-# Define UI for the app
+# Define UI
 ui <- navbarPage(
 
   title = "Neptune Balls - Plastic Sentinels",
@@ -26,7 +25,7 @@ ui <- navbarPage(
   tabPanel("Project Description",
            fluidPage(
              titlePanel("Rolling in the deep: Neptune balls as plastic sentinels"),
-             h5("by Valentina Costa and Cristina Pedà**"),
+             h5("by Valentina Costa and Cristina Pedà"),
              br(),
 
              tags$div(
@@ -90,16 +89,18 @@ ui <- navbarPage(
              # Display summary information
              fluidRow(
                column(6,
-                      h4("Sampling Statistics"),
-                      p("Total number of sampling sites:"),
-                      textOutput("num_points")
-                      ),
+                      wellPanel(
+                        h4("Sampling Statistics"),
+                        p("Total number of sampling sites:"),
+                        textOutput("num_points")
+                        )),
                column(6,
-                      p("Geographical Spread:"),
+                      wellPanel(
+                        h4("Geographical Spread:"),
                       plotlyOutput("geo_spread_lat"),
                       plotlyOutput("geo_spread_lon")
                )
-               
+               )
              )
            )
   ),
@@ -109,9 +110,73 @@ ui <- navbarPage(
            fluidPage(
              titlePanel("Who we are?"),
              
-             # Add the project description text here
-             h5("Valentina Costa and Cristina Pedà"),
-             br(),
+             fluidRow(
+               column(6,
+                      wellPanel(
+                        tags$div(style = "overflow: hidden;",
+                                 tags$img(src = "valentina-photo.jpg", 
+                                          style = "float: left; margin-right: 15px; width: 150px;"),
+                                 h4("Valentina Costa"),
+                                 p("My research activity is focused on the study of the
+                        ecology of seagrass marine ecosystems. The main purpose
+                        of my research is to answer ecological questions by
+                        applying an integrated approach based on three main
+                        keywords: map, protect and restore.To map and protect
+                        any ecosystem, knowledge represents the starting point,
+                        and how different environmental variables can affect
+                        the ecosystem itself is also necessary. During my PhD,
+                        I worked on evaluating the effects of particular
+                        environmental gradients (acidification and confinement)
+                        on seagrass detritus decomposition dynamics and the
+                        colonization by marine invertebrates of the detritus
+                        itself. After my PhD, I focused my research on the
+                        effects of ocean acidification on seagrasses also
+                        using experimental approaches and mesocosm studies. More
+                        recently, my interest has been more focused on the
+                        keyword restore. One approach to ecosystem restoration
+                        is the transplanting of organisms from non-impacted
+                        areas to areas that need to be reforested. For this
+                        reason, part of my research activity is focused on the
+                        evaluation of transplantation techniques used for
+                        marine seagrass restoration activities.I am also very
+                          interested in new open-source technologies (e.g.
+                          Arduino) and how these can be applied to the study of
+                          the ecology of marine ecosystems.")
+                        )
+                      )
+                      
+                        
+                      ),
+               column(6,
+                      wellPanel(
+                        h4("Cristina Pedà"),
+                        p("My research activity focuses on the study of 
+                          different aspects of marine litter pollution with 
+                          particular attention to the impacts of plastic on the 
+                          marine ecosystems and biodiversity. During my PhD, I 
+                          investigated the effects of microplastics ingestion 
+                          in a commercially valuable species under controlled 
+                          laboratory conditions. Then, I continued to study the 
+                          plastic ingestion phenomenon in teleost and 
+                          cartilaginous fish and in cephalopod molluscs as well 
+                          as the potential transfer of plastics along the 
+                          trophic web. To explore the issue of marine litter 
+                          pollution, I also studied the presence of litter in 
+                          marine different compartments and in particular its 
+                          composition and abundance on the seafloor and on the 
+                          sea surface, as well as the interaction between litter 
+                          and marine organisms. In this view, part of my 
+                          research activity is focused on the application and 
+                          validation of methodologies for the microplastics 
+                          extraction from different marine matrices (sediment, 
+                          seawater, and biota) and polymer’s identification by 
+                          Fourier transforms infrared spectroscopy (FT-IR). In 
+                          the future, I would like to investigate the potential 
+                          effects of plastics in sensitive habitats and also 
+                          in underexplored organisms.")
+                      )  
+                      )
+             ) 
            )
   )
   
@@ -140,35 +205,19 @@ server <- function(input, output, session) {
     return(data)
   })
   
-  # # Render map with filtered points
-  # output$map <- renderLeaflet({
-  #   leaflet() %>%
-  #     addProviderTiles("Esri.WorldImagery") %>%
-  #     setView(lng = 13.5, lat = 37.5, zoom = 4.5) %>%
-  #     addMarkers(
-  #       data = filtered_points(),
-  #       lng = ~lon,
-  #       lat = ~lat,
-  #       popup = ~paste0(
-  #         "<b>Site:</b> ", site, "<br>",
-  #         "<b>Collector:</b> ", name, "<br>",
-  #         "<b>Date:</b> ", date, "<br>",
-  #         "<b>Lat:</b> ", lat, "<br>",
-  #         "<b>Lon:</b> ", lon, "<br>",
-  #         ifelse(photo != "", paste0('<img src="', photo, '" width="200px">'), "")
-  #       )
-  #     )
-  # })
-  
   output$map <- renderLeaflet({
+    filtered <- filtered_points()
+    
     map <- leaflet() %>%
       addProviderTiles("Esri.WorldImagery") %>%
       setView(lng = 13.5, lat = 37.5, zoom = 4.5)
 
     # Check if the dataframe has valid numeric data before adding markers
-    if (nrow(filtered_points()) > 0) {
+    if (nrow(filtered) > 0) {
       map <- map %>%
-        addMarkers(data = filtered_points(), ~as.numeric(lon), ~as.numeric(lat),
+        addMarkers(
+          data = filtered, 
+          ~as.numeric(lon), ~as.numeric(lat),
                    popup = ~paste0(
                     ifelse(photo != "", paste0('<img src="', photo, '" width="200px">'), ""),
                     "<b>Site:</b> ", site, "<br>",
@@ -185,27 +234,10 @@ server <- function(input, output, session) {
 
   # Render the dataframe as a table below the map
   output$points_table <- renderDT({
-    datatable(marked_points(), editable = "cell", selection = "single")
+    datatable(
+      marked_points()[, !(names(marked_points()) %in% c("id", "photo"))], 
+      selection = "single")
   }, server = FALSE)
-  
-  # Observe Table Cell edit
-  observeEvent(input$points_table_cell_edit, {
-    info <- input$points_table_cell_edit
-    updated_data <- marked_points()
-    
-    # Correctly update lat, lon, or site without introducing new columns
-    if (info$col == 1) {
-      updated_data[info$row, "lat"] <- as.numeric(info$value)
-    } else if (info$col == 2) {
-      updated_data[info$row, "lon"] <- as.numeric(info$value)
-    } else if (info$col == 3) {
-      updated_data[info$row, "site"] <- info$value
-    }
-    
-    marked_points(updated_data)
-   
-     })
-
   
   # Allow users to download the data
   output$download_data <- downloadHandler(
@@ -220,47 +252,41 @@ server <- function(input, output, session) {
     nrow(filtered_points())
   })
   
-  # Function to create column graphs for geographical spread (latitude and longitude)
-create_geo_spread_plot <- function(data, variable, var_name) {
-  # Dynamic breaks
-  data_range <- max(data) - min(data)
-  if (data_range <= 10) {
-    by_value <- 1
-  } else if (data_range <= 20) {
-    by_value <- 2
-  } else if (data_range <= 50) {
-    by_value <- 5
-  } else if (data_range <= 100) {
-    by_value <- 10
-  } else {
-    by_value <- 20
+  create_geo_spread_plot <- function(data, variable, var_name) {
+    data <- na.omit(data)
+    
+    if (length(data) <= 1) return(plotly_empty())
+    
+    # Use a fixed number of bins (e.g., 8) and pretty breaks
+    breaks <- pretty(data, n = 8)
+    if (length(breaks) < 2) {
+      breaks <- seq(min(data), max(data), length.out = 3)
+    }
+    
+    cut_data <- cut(data, breaks = breaks, include.lowest = TRUE, right = FALSE)
+    counts <- table(cut_data)
+    
+    color_palette <- c("#2c7bb6", "#00a6ca", "#00ccbc", "#90eb9d", "#ffff8c")
+    
+    plot_ly(
+      x = names(counts),
+      y = as.numeric(counts),
+      type = "bar",
+      name = var_name,
+      marker = list(color = color_palette),
+      hoverinfo = "text",
+      text = paste("Range:", names(counts), "<br>Count:", as.numeric(counts))
+    ) %>%
+      layout(
+        title = list(text = paste(var_name, "Distribution"), x = 0.5),
+        xaxis = list(title = var_name, showgrid = FALSE),
+        yaxis = list(title = "Count", showgrid = FALSE),
+        plot_bgcolor = "rgba(240, 240, 240, 0.8)",
+        paper_bgcolor = "rgba(255, 255, 255, 0.8)",
+        margin = list(l = 50, r = 50, b = 50, t = 50)
+      )
   }
-  breaks <- seq(min(data), max(data), by = by_value)  # Define breaks (intervals)
-  cut_data <- cut(data, breaks = breaks, include.lowest = TRUE, right = FALSE)
-  counts <- table(cut_data)
-
-  # Define a color palette
-  color_palette <- c("#2c7bb6", "#00a6ca", "#00ccbc", "#90eb9d", "#ffff8c")
-
-  plot_ly(
-    x = names(counts),
-    y = as.numeric(counts),
-    type = "bar",
-    name = var_name,
-    marker = list(color = color_palette[1]), # Use the first color of the palette
-    hoverinfo = "text",
-    text = paste("Range:", names(counts), "<br>Count:", as.numeric(counts))
-  ) %>%
-    layout(
-      title = list(text = paste(var_name, "Distribution"), x = 0.5), # Centered title
-      xaxis = list(title = var_name, showgrid = FALSE), # Remove gridlines
-      yaxis = list(title = "Count", showgrid = FALSE), # Remove gridlines
-      plot_bgcolor = "rgba(240, 240, 240, 0.8)", # Light gray background
-      paper_bgcolor = "rgba(255, 255, 255, 0.8)", # White background
-      margin = list(l = 50, r = 50, b = 50, t = 50) # Adjust margins
-    )
-}
-
+  
 # Render geographical spread plots
 output$geo_spread_lat <- renderPlotly({
   if (nrow(filtered_points()) > 0) {
