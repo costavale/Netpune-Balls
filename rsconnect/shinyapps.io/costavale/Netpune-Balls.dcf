@@ -5,7 +5,7 @@ account: costavale
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14263789
-bundleId: 10057225
+bundleId: 10675412
 url: https://costavale.shinyapps.io/Netpune-Balls/
 version: 1
 asMultiple: FALSE
