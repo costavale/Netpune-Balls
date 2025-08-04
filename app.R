@@ -12,7 +12,7 @@ data_file <- "data/marked_points.csv"
 
 # Load existing data
 marked_points_data <- read.csv(data_file, stringsAsFactors = FALSE) %>%
-  mutate(lat = as.numeric(lat), lon = as.numeric(lon), date = as.Date(date))
+  mutate(lat = as.numeric(lat), lon = as.numeric(lon), date = as.Date(date, format = "%d/%m/%Y"))
 
 
 # Define UI
@@ -234,9 +234,13 @@ server <- function(input, output, session) {
 
   # Render the dataframe as a table below the map
   output$points_table <- renderDT({
+    df <- marked_points()[, !(names(marked_points()) %in% c("id", "photo"))]
+    df$date <- format(as.Date(df$date), "%d-%m-%Y")  # format date as string
+    
     datatable(
-      marked_points()[, !(names(marked_points()) %in% c("id", "photo"))], 
-      selection = "single")
+      df,
+      selection = "single"
+    )
   }, server = FALSE)
   
   # Allow users to download the data
